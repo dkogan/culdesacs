@@ -11,7 +11,7 @@ my $lat         = $ARGV{'--center'}{lat};
 my $lon         = $ARGV{'--center'}{lon};
 
 # I want radius in meters
-my ($rad,$unit) = $ARGV{'--rad'} =~ /([0-9\.]+)(.*?)/;
+my ($rad,$unit) = $ARGV{'--rad'} =~ /([0-9\.]+)(.*?)$/;
 if   ($unit =~ /mile/) { $rad *= 5280 * 12 * 2.54 / 100; }
 elsif($unit =~ /km/ )  { $rad *= 1000; }
 
