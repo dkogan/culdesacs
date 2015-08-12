@@ -1,0 +1,5 @@
+*.o
+*.d
+compute
+query_*.json
+*~
