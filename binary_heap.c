@@ -33,16 +33,14 @@
  *	(or: http://queue.acm.org/detail.cfm?id=1814327)
  */
 
-#include "config.h"
-
 #include <errno.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "binary_heap.h"
-#include "vas.h"
 
 /* Parameters --------------------------------------------------------*/
 
@@ -215,7 +213,7 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 
 	bh->page_size = (unsigned)getpagesize() / sizeof (void *);
 	bh->page_mask = bh->page_size - 1;
-	AZ(bh->page_size & bh->page_mask);	/* power of two */
+	assert( 0 == (bh->page_size & bh->page_mask));	/* power of two */
 	for (u = 1; (1U << u) != bh->page_size; u++)
 		;
 	bh->page_shift = u;
@@ -350,7 +348,7 @@ chk(const struct binheap *bh)
 
 	for (u = 2; u < bh->next; u++) {
 		v = parent(bh, u);
-		AZ(bh->cmp(bh->priv, A(bh, u), A(bh, v)));
+		assert(0 == (bh->cmp( A(bh, u), A(bh, v))));
 	}
 }
 #endif
@@ -462,17 +460,6 @@ binheap_reorder(const struct binheap *bh, unsigned idx)
 
 /* Test driver -------------------------------------------------------*/
 
-static void
-vasfail(const char *func, const char *file, int line,
-    const char *cond, int err, int xxx)
-{
-	fprintf(stderr, "PANIC: %s %s %d %s %d %d\n",
-		func, file, line, cond, err, xxx);
-	abort();
-}
-
-vas_f *VAS_Fail = vasfail;
-
 struct foo {
 	unsigned	magic;
 #define FOO_MAGIC	0x23239823
@@ -532,12 +519,6 @@ main(int argc, char **argv)
 	unsigned u, v, lr, n;
 	struct foo *fp;
 
-	if (0) {
-		srandomdev();
-		u = random();
-		printf("Seed %u\n", u);
-		srandom(u);
-	}
 	bh = binheap_new(NULL, cmp, update);
 	for (n = 2; n; n += n) {
 		child(bh, n - 1, &u, &v);
@@ -603,7 +584,7 @@ main(int argc, char **argv)
 			v = random() % N;
 			if (ff[v] != NULL) {
 				CHECK_OBJ_NOTNULL(ff[v], FOO_MAGIC);
-				AN(ff[v]->idx);
+                                assert( 0 != (ff[v]->idx));
 				if (ff[v]->key & 1) {
 					binheap_delete(bh, ff[v]->idx);
 					assert(ff[v]->idx == BINHEAP_NOIDX);
@@ -619,7 +600,7 @@ main(int argc, char **argv)
 				ff[v]->key = random() % R;
 				binheap_insert(bh, ff[v]);
 				CHECK_OBJ_NOTNULL(ff[v], FOO_MAGIC);
-				AN(ff[v]->idx);
+                                assert( 0 != (ff[v]->idx));
 			}
 			if (0)
 				chk2(bh);
