@@ -35,14 +35,14 @@
 
 struct binheap;
 
-typedef int binheap_cmp_t(void *priv, void *a, void *b);
+typedef int binheap_cmp_t( void *a, void *b);
 	/*
 	 * Comparison function.
 	 * Should return true if item 'a' should be closer to the root
 	 * than item 'b'
 	 */
 
-typedef void binheap_update_t(void *priv, void *a, unsigned newidx);
+typedef void binheap_update_t( void *a, unsigned newidx);
 	/*
 	 * Update function (optional)
 	 * When items move in the tree, this function gets called to
@@ -50,10 +50,9 @@ typedef void binheap_update_t(void *priv, void *a, unsigned newidx);
 	 * Only needed if deleting non-root items.
 	 */
 
-struct binheap *binheap_new(void *priv, binheap_cmp_t, binheap_update_t);
+struct binheap *binheap_new( binheap_cmp_t, binheap_update_t);
 	/*
 	 * Create Binary tree
-	 * 'priv' is passed to cmp and update functions.
 	 */
 
 void binheap_insert(struct binheap *, void *);
