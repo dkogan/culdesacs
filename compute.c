@@ -3,12 +3,20 @@
 #include <stdint.h>
 #include <float.h>
 #include <stdbool.h>
+#include <math.h>
+#include <string.h>
 
 #include "binary_heap.h"
 
 
+#define die(str) do { fprintf(stderr, str"\n"); exit(1); } while(0)
+
+
 typedef int32_t node_index_t;
 typedef int32_t neighbor_index_t;
+
+#define NOT_YET_IN_HEAP     UINT32_MAX
+#define NOT_IN_HEAP_ANYMORE BINHEAP_NOIDX
 
 struct node_t
 {
@@ -16,10 +24,11 @@ struct node_t
     uint32_t neighborpool_idx;
 
     // The shortest distance along the road network to this node. If not yet
-    // initialized, this is FLT_MAX. If already processed, this is <0
+    // initialized, this is FLT_MAX
     float dist_graph;
 
-    unsigned idx; // position in the heap structure
+    // position in the heap structure. Could be NOT_YET_IN_HEAP or NOT_IN_HEAP_ANYMORE
+    unsigned idx;
 };
 
 
@@ -39,12 +48,7 @@ static node_index_t* neighbor_pool = NULL;
 
 static bool node_visited(node_index_t node)
 {
-    return node_pool[node].dist_graph < 0.0f;
-}
-
-static void node_set_visited(node_index_t node)
-{
-    node_pool[node].dist_graph = -1.0f;
+    return node_pool[node].idx == NOT_IN_HEAP_ANYMORE;
 }
 
 static int node_cmp_callback(void* _a, void* _b)
@@ -92,10 +96,43 @@ static void push_result(node_index_t node)
     printf("%f %f %f\n", node_pool[node].lat, node_pool[node].lon, node_pool[node].dist_graph);
 }
 
+static float distance(node_index_t a, node_index_t b)
+{
+    float lat_a = node_pool[a].lat * (float)M_PI / 180.0f;
+    float lon_a = node_pool[a].lon * (float)M_PI / 180.0f;
+    float lat_b = node_pool[b].lat * (float)M_PI / 180.0f;
+    float lon_b = node_pool[b].lon * (float)M_PI / 180.0f;
+
+    float v_a[3] = { cosf(lon_a)*cosf(lat_a),
+                     sinf(lon_a)*cosf(lat_a),
+                     sinf(lat_a)};
+    float v_b[3] = { cosf(lon_b)*cosf(lat_b),
+                     sinf(lon_b)*cosf(lat_b),
+                     sinf(lat_b)};
+
+    // in theory, asinf() should be more accurate than acosf()
+#define R_EARTH 6371000.0 // meters
+#if 0
+    float cos_diff =
+        v_a[0]*v_b[0] +
+        v_a[1]*v_b[1] +
+        v_a[2]*v_b[2];
+    return acosf(cos_diff) * R_EARTH;
+#else
+
+    float vcross[3] = { v_a[1]*v_b[2] - v_a[2]*v_b[1],
+                        v_a[2]*v_b[0] - v_a[0]*v_b[2],
+                        v_a[0]*v_b[1] - v_a[1]*v_b[0] };
+    float sin_diff = sqrtf( vcross[0] * vcross[0] +
+                            vcross[1] * vcross[1] +
+                            vcross[2] * vcross[2] );
+    return asinf(sin_diff);
+#endif
+}
+
 static void process_node(node_index_t node)
 {
     push_result(node);
-    node_set_visited(node);
 
     for(neighbor_index_t neighbor_idx = node_pool[node].neighborpool_idx;
         neighbor_pool[neighbor_idx] >= 0;
@@ -105,7 +142,7 @@ static void process_node(node_index_t node)
 
         if(!node_visited(neighbor))
         {
-            float dist_graph_new_candidate = node_pool[node].dist_graph + dist(neighbor, node);
+            float dist_graph_new_candidate = node_pool[node].dist_graph + distance(neighbor, node);
             if(node_pool[neighbor].dist_graph == FLT_MAX)
             {
                 // not yet in heap. Set current route to best found, and add to
@@ -134,24 +171,81 @@ static void parse_input(void)
     // stdin data has
     //
     // Nnodes: xxx
-    // lat lon neighbor_pool_idx
-    // ...
-    // Nneighbor_pool: xxx
-    // neighbor_pool[0]
-    // neighbor_pool[1]
+    // Nneighbors: xxx
+    // lat lon neighbor0 neighbor1 neighbor2 ....
     // ...
 
-    int N;
+    int Nnodes, Nneighbors;
 
-    scanf("Nnodes: %d", &N);
-    node_pool = malloc(N * sizeof(sizeof(node_pool[0])));
-    for(int i=0; i<N; i++)
-        scanf("%f %f %d", &node_pool[i].lat, &node_pool[i].lon, &node_pool[i].neighborpool_idx);
+    if( 2 != scanf("Nnodes: %d\nNneighbors: %d", &Nnodes, &Nneighbors))
+        die("scanf failed");
 
-    scanf("Nneighbor_pool: %d", &N);
-    neighbor_pool = malloc(N * sizeof(sizeof(neighbor_pool[0])));
-    for(int i=0; i<N; i++)
-        scanf("%d", &neighbor_pool[i]);
+    node_pool = malloc(Nnodes * sizeof(sizeof(node_pool[0])));
+
+    // each node's neighbor list ends with a '-1' neighbor, so I must make room
+    // for this extra neighbor
+    neighbor_pool = malloc((Nneighbors + Nnodes) * sizeof(sizeof(neighbor_pool[0])));
+
+    if(node_pool == NULL || neighbor_pool == NULL)
+        die("malloc failed");
+
+    static char* lineptr = NULL;
+    static size_t line_n = 0;
+
+    int neighborpool_idx = 0;
+
+    for(int i=0; i<Nnodes; i++)
+    {
+        if( 0 >= getline(&lineptr, &line_n, stdin) )
+            die("getline failed");
+
+        if( strcmp(lineptr, "\n") == 0 )
+        {
+            // blank lines are meaningless. Skip and don't include into Nnodes
+            i--;
+            continue;
+        }
+
+
+        int bytesread;
+        int Ntokens =
+            sscanf(lineptr,
+                   "%f %f%n",
+                   &node_pool[i].lat, &node_pool[i].lon,
+                   &bytesread);
+
+        // fprintf(stderr, "line: '%s'\n", lineptr);
+        // fprintf(stderr, "Ntokens: '%d'\n", Ntokens);
+
+
+        if( Ntokens != 2 && Ntokens != 3 )
+            die("sscanf failed");
+
+        node_pool[i].neighborpool_idx = neighborpool_idx;
+
+        node_pool[i].idx        = NOT_YET_IN_HEAP;
+        node_pool[i].dist_graph = FLT_MAX;
+
+        while(1)
+        {
+            int bytesread_here;
+            Ntokens = sscanf(&lineptr[bytesread], "%d%n",
+                             &neighbor_pool[neighborpool_idx],
+                             &bytesread_here);
+
+            if(Ntokens <= 0)
+            {
+                neighbor_pool[neighborpool_idx++] = -1;
+                break;
+            }
+
+            neighborpool_idx++;
+
+            bytesread += bytesread_here;
+        }
+    }
+
+    free(lineptr);
 }
 
 int main(void)
@@ -162,6 +256,7 @@ int main(void)
 
     heap = binheap_new( node_cmp_callback, node_update_callback);
 
+    node_pool[0].dist_graph = 0;
     push(0);
 
     while(1)
