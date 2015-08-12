@@ -20,7 +20,7 @@ typedef int32_t neighbor_index_t;
 
 struct node_t
 {
-    float    lat, lon;
+    float    x,y;
     uint32_t neighborpool_idx;
 
     // The shortest distance along the road network to this node. If not yet
@@ -35,6 +35,9 @@ struct node_t
 // The nodes
 static struct node_t* node_pool = NULL;
 
+// We start the graph search at this node
+static int node0_idx = -1;
+
 // The neighbor pool describes the neighbors of all of the nodes. For node index
 // i, the neighbor indices are in
 //
@@ -44,7 +47,6 @@ static struct node_t* node_pool = NULL;
 //
 // Each neighbor list ends with an index <0
 static node_index_t* neighbor_pool = NULL;
-
 
 static bool node_visited(node_index_t node)
 {
@@ -93,41 +95,14 @@ static void decrease_cost(node_index_t node)
 
 static void push_result(node_index_t node)
 {
-    printf("%f %f %f\n", node_pool[node].lat, node_pool[node].lon, node_pool[node].dist_graph);
+    printf("%f %f %f\n", node_pool[node].x, node_pool[node].y, node_pool[node].dist_graph);
 }
 
 static float distance(node_index_t a, node_index_t b)
 {
-    float lat_a = node_pool[a].lat * (float)M_PI / 180.0f;
-    float lon_a = node_pool[a].lon * (float)M_PI / 180.0f;
-    float lat_b = node_pool[b].lat * (float)M_PI / 180.0f;
-    float lon_b = node_pool[b].lon * (float)M_PI / 180.0f;
-
-    float v_a[3] = { cosf(lon_a)*cosf(lat_a),
-                     sinf(lon_a)*cosf(lat_a),
-                     sinf(lat_a)};
-    float v_b[3] = { cosf(lon_b)*cosf(lat_b),
-                     sinf(lon_b)*cosf(lat_b),
-                     sinf(lat_b)};
-
-    // in theory, asinf() should be more accurate than acosf()
-#define R_EARTH 6371000.0 // meters
-#if 0
-    float cos_diff =
-        v_a[0]*v_b[0] +
-        v_a[1]*v_b[1] +
-        v_a[2]*v_b[2];
-    return acosf(cos_diff) * R_EARTH;
-#else
-
-    float vcross[3] = { v_a[1]*v_b[2] - v_a[2]*v_b[1],
-                        v_a[2]*v_b[0] - v_a[0]*v_b[2],
-                        v_a[0]*v_b[1] - v_a[1]*v_b[0] };
-    float sin_diff = sqrtf( vcross[0] * vcross[0] +
-                            vcross[1] * vcross[1] +
-                            vcross[2] * vcross[2] );
-    return asinf(sin_diff);
-#endif
+    float dx = node_pool[a].x - node_pool[b].x;
+    float dy = node_pool[a].y - node_pool[b].y;
+    return hypotf(dx,dy);
 }
 
 static void process_node(node_index_t node)
@@ -172,19 +147,21 @@ static void parse_input(void)
     //
     // Nnodes: xxx
     // Nneighbors: xxx
-    // lat lon neighbor0 neighbor1 neighbor2 ....
+    // Node0_idx: xxx
+    // x y neighbor0 neighbor1 neighbor2 ....
     // ...
 
     int Nnodes, Nneighbors;
 
-    if( 2 != scanf("Nnodes: %d\nNneighbors: %d", &Nnodes, &Nneighbors))
+    if( 3 != scanf("Nnodes: %d\nNneighbors: %d\nNode0_idx: %d",
+                   &Nnodes, &Nneighbors, &node0_idx))
         die("scanf failed");
 
-    node_pool = malloc(Nnodes * sizeof(sizeof(node_pool[0])));
+    node_pool = malloc(Nnodes * sizeof(node_pool[0]));
 
     // each node's neighbor list ends with a '-1' neighbor, so I must make room
     // for this extra neighbor
-    neighbor_pool = malloc((Nneighbors + Nnodes) * sizeof(sizeof(neighbor_pool[0])));
+    neighbor_pool = malloc((Nneighbors + Nnodes) * sizeof(neighbor_pool[0]));
 
     if(node_pool == NULL || neighbor_pool == NULL)
         die("malloc failed");
@@ -211,12 +188,8 @@ static void parse_input(void)
         int Ntokens =
             sscanf(lineptr,
                    "%f %f%n",
-                   &node_pool[i].lat, &node_pool[i].lon,
+                   &node_pool[i].x, &node_pool[i].y,
                    &bytesread);
-
-        // fprintf(stderr, "line: '%s'\n", lineptr);
-        // fprintf(stderr, "Ntokens: '%d'\n", Ntokens);
-
 
         if( Ntokens != 2 && Ntokens != 3 )
             die("sscanf failed");
@@ -252,12 +225,10 @@ int main(void)
 {
     parse_input();
 
-
-
     heap = binheap_new( node_cmp_callback, node_update_callback);
 
-    node_pool[0].dist_graph = 0;
-    push(0);
+    node_pool[node0_idx].dist_graph = 0;
+    push(node0_idx);
 
     while(1)
     {
