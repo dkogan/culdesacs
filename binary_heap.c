@@ -76,7 +76,6 @@
 struct binheap {
 	unsigned		magic;
 #define BINHEAP_MAGIC		0xf581581aU	/* from /dev/random */
-	void			*priv;
 	binheap_cmp_t		*cmp;
 	binheap_update_t	*update;
 	void			***array;
@@ -201,7 +200,7 @@ binheap_addrow(struct binheap *bh)
 }
 
 struct binheap *
-binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
+binheap_new( binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 {
 	struct binheap *bh;
 	unsigned u;
@@ -209,7 +208,6 @@ binheap_new(void *priv, binheap_cmp_t *cmp_f, binheap_update_t *update_f)
 	bh = calloc(sizeof *bh, 1);
 	if (bh == NULL)
 		return (bh);
-	bh->priv = priv;
 
 	bh->page_size = (unsigned)getpagesize() / sizeof (void *);
 	bh->page_mask = bh->page_size - 1;
@@ -239,7 +237,7 @@ binheap_update(const struct binheap *bh, unsigned u)
 	assert(u < bh->next);
 	assert(A(bh, u) != NULL);
 	if (bh->update != NULL)
-		bh->update(bh->priv, A(bh, u), u);
+		bh->update(A(bh, u), u);
 }
 
 static void
@@ -276,7 +274,7 @@ binheap_trickleup(const struct binheap *bh, unsigned u)
 		assert(v < u);
 		assert(v < bh->next);
 		assert(A(bh, v) != NULL);
-		if (!bh->cmp(bh->priv, A(bh, u), A(bh, v)))
+		if (!bh->cmp(A(bh, u), A(bh, v)))
 			break;
 		binhead_swap(bh, u, v);
 		u = v;
@@ -308,12 +306,12 @@ binheap_trickledown(const struct binheap *bh, unsigned u)
 		assert(A(bh, v1) != NULL);
 		if (v1 != v2 && v2 < bh->next) {
 			assert(A(bh, v2) != NULL);
-			if (bh->cmp(bh->priv, A(bh, v2), A(bh, v1)))
+			if (bh->cmp( A(bh, v2), A(bh, v1)))
 				v1 = v2;
 		}
 		assert(v1 < bh->next);
 		assert(A(bh, v1) != NULL);
-		if (bh->cmp(bh->priv, A(bh, u), A(bh, v1)))
+		if (bh->cmp( A(bh, u), A(bh, v1)))
 			return (u);
 		binhead_swap(bh, u, v1);
 		u = v1;
@@ -399,7 +397,7 @@ binheap_delete(struct binheap *bh, unsigned idx)
 	assert(idx < bh->next);
 	assert(idx > 0);
 	assert(A(bh, idx) != NULL);
-	bh->update(bh->priv, A(bh, idx), BINHEAP_NOIDX);
+	bh->update( A(bh, idx), BINHEAP_NOIDX);
 	if (idx == --bh->next) {
 		A(bh, bh->next) = NULL;
 		return;
@@ -480,7 +478,7 @@ struct foo {
 struct foo *ff[N];
 
 static int
-cmp(void *priv, void *a, void *b)
+cmp( void *a, void *b)
 {
 	struct foo *fa, *fb;
 
@@ -490,7 +488,7 @@ cmp(void *priv, void *a, void *b)
 }
 
 void
-update(void *priv, void *a, unsigned u)
+update( void *a, unsigned u)
 {
 	struct foo *fa;
 
@@ -519,7 +517,7 @@ main(int argc, char **argv)
 	unsigned u, v, lr, n;
 	struct foo *fp;
 
-	bh = binheap_new(NULL, cmp, update);
+	bh = binheap_new(cmp, update);
 	for (n = 2; n; n += n) {
 		child(bh, n - 1, &u, &v);
 		child(bh, n, &u, &v);
