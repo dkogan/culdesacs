@@ -608,3 +608,9 @@ main(int argc, char **argv)
 	return (0);
 }
 #endif
+
+// Local Variables:
+// c-basic-offset: 8
+// tab-width: 8
+// indent-tabs-mode: t
+// End:
