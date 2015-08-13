@@ -20,7 +20,7 @@ typedef int32_t neighbor_index_t;
 
 struct node_t
 {
-    float    x,y;
+    float    lat, lon;
     uint32_t neighborpool_idx;
 
     // The shortest distance along the road network to this node. If not yet
@@ -95,16 +95,16 @@ static void decrease_cost(node_index_t node)
 
 static float distance(node_index_t a, node_index_t b)
 {
-    float dx = node_pool[a].x - node_pool[b].x;
-    float dy = node_pool[a].y - node_pool[b].y;
-    return hypotf(dx,dy);
+    float dlat = node_pool[a].lat - node_pool[b].lat;
+    float dlon = node_pool[a].lon - node_pool[b].lon;
+    return sqrtf( dlat*dlat + dlon*dlon*cosf(node_pool[a].lat)*cosf(node_pool[b].lat));
 }
 
 static void push_result(node_index_t node)
 {
     printf("%d %f %f %f %f\n",
            node,
-           node_pool[node].x, node_pool[node].y,
+           node_pool[node].lat, node_pool[node].lon,
            node_pool[node].dist_graph,
            distance(node0_idx, node));
 }
@@ -152,7 +152,7 @@ static void parse_input(void)
     // Nnodes: xxx
     // Nneighbors: xxx
     // Node0_idx: xxx
-    // x y neighbor0 neighbor1 neighbor2 ....
+    // lat lon neighbor0 neighbor1 neighbor2 ....
     // ...
 
     int Nnodes, Nneighbors;
@@ -192,7 +192,7 @@ static void parse_input(void)
         int Ntokens =
             sscanf(lineptr,
                    "%f %f%n",
-                   &node_pool[i].x, &node_pool[i].y,
+                   &node_pool[i].lat, &node_pool[i].lon,
                    &bytesread);
 
         if( Ntokens != 2 && Ntokens != 3 )
