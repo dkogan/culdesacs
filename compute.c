@@ -102,8 +102,7 @@ static float distance(node_index_t a, node_index_t b)
 
 static void push_result(node_index_t node)
 {
-    printf("%d %f %f %f %f\n",
-           node,
+    printf("%f %f %f %f\n",
            node_pool[node].lat, node_pool[node].lon,
            node_pool[node].dist_graph,
            distance(node0_idx, node));
