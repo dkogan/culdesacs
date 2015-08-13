@@ -28,6 +28,7 @@ my $query = <<EOF;
 
 way
  ["highway"]
+ ["highway" !~ "motorway|motorway_link" ]
  (around:$rad,$lat,$lon);
 
 (._;>;);
