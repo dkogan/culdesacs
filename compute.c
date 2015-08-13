@@ -36,7 +36,7 @@ struct node_t
 static struct node_t* node_pool = NULL;
 
 // We start the graph search at this node
-static int node0_idx = -1;
+static node_index_t node0_idx = -1;
 
 // The neighbor pool describes the neighbors of all of the nodes. For node index
 // i, the neighbor indices are in
@@ -93,16 +93,20 @@ static void decrease_cost(node_index_t node)
     binheap_reorder(heap, node_pool[node].idx);
 }
 
-static void push_result(node_index_t node)
-{
-    printf("%f %f %f\n", node_pool[node].x, node_pool[node].y, node_pool[node].dist_graph);
-}
-
 static float distance(node_index_t a, node_index_t b)
 {
     float dx = node_pool[a].x - node_pool[b].x;
     float dy = node_pool[a].y - node_pool[b].y;
     return hypotf(dx,dy);
+}
+
+static void push_result(node_index_t node)
+{
+    printf("%d %f %f %f %f\n",
+           node,
+           node_pool[node].x, node_pool[node].y,
+           node_pool[node].dist_graph,
+           distance(node0_idx, node));
 }
 
 static void process_node(node_index_t node)

@@ -15,7 +15,6 @@ my ($rad,$unit) = $ARGV{'--rad'} =~ /([0-9\.]+)(.*?)$/;
 if   ($unit =~ /mile/) { $rad *= 5280 * 12 * 2.54 / 100; }
 elsif($unit =~ /km/ )  { $rad *= 1000; }
 
-
 my $cachefile = "query_${lat}_${lon}_${rad}.json";
 if( -e $cachefile )
 {
