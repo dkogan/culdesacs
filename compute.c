@@ -8,6 +8,9 @@
 
 #include "binary_heap.h"
 
+const float Rearth = 6371000.0f; // meters
+
+
 
 #define die(str) do { fprintf(stderr, str"\n"); exit(1); } while(0)
 
@@ -97,7 +100,9 @@ static float distance(node_index_t a, node_index_t b)
 {
     float dlat = node_pool[a].lat - node_pool[b].lat;
     float dlon = node_pool[a].lon - node_pool[b].lon;
-    return sqrtf( dlat*dlat + dlon*dlon*cosf(node_pool[a].lat)*cosf(node_pool[b].lat));
+    return Rearth * (float)M_PI / 180.0f  * sqrtf( dlat*dlat +
+                                                   cosf(node_pool[a].lat * (float)M_PI / 180.0f) *
+                                                   cosf(node_pool[b].lat * (float)M_PI / 180.0f) * dlon*dlon);
 }
 
 static void push_result(node_index_t node)
