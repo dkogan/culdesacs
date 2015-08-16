@@ -2,7 +2,7 @@
 
 * Overview
 
-Talking to a friend, a question came up about finding the point he LA's road
+Talking to a friend, a question came up about finding the point in LA's road
 network that's most inconvenient to get to, with /inconvenient/ being a vague
 notion describing a closed residential neighborhood full of dead ends; the
 furthest of these dead ends would be most inconvenient indeed. This repository
