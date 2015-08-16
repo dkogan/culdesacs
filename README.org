@@ -290,5 +290,7 @@ the crow flies, for an inconvenience coefficient of 0.72.
 
 * License
 
-All code Copyright 2015 Dima Kogan, released under the terms of the Lesser GNU
-Public License (any version)
+All code I wrote is Copyright 2015 Dima Kogan, released under the terms of the
+Lesser GNU Public License (any version). This includes everything except the
+files from Varnish, whose copyright and licensing appear in the specific files.
+These are binary_heap.c, binary_heap.h, miniobj.h
