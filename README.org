@@ -1,5 +1,11 @@
 #+OPTIONS: tex:dvipng
 
+* Reference
+
+This is all described better (with pictures!) in a blog post:
+
+http://notes.secretsauce.net/notes/2015/08/16_least-convenient-location-in-los-angeles-from-koreatown.html
+
 * Overview
 
 Talking to a friend, a question came up about finding the point in LA's road
@@ -258,8 +264,8 @@ The output is this:
 |      0.719789 | 34.031509 | -118.279755 |       7475.278809 |         4346.624512 |
 |      0.719616 | 34.095020 | -118.236320 |      10248.023438 |         5959.484863 |
 
-Here there are 3 clusters of data. All the stuff < 500m away from the start is
-mostly degenerate an uninteresting. Most of the points are in walkways in Shatto
+There are 3 clusters of data. All the stuff < 500m away from the start is
+mostly degenerate and uninteresting. Most of the points are in walkways in Shatto
 Recreation Center. They're all so close to the start that any inefficiency is
 exaggerated by the small =d_direct=. I make the rules, so I claim these aren't
 the least convenient point.
