@@ -3,3 +3,7 @@
 compute
 query_*.json
 *~
+*.png
+*.gp
+*.net
+*.out
